@@ -1,0 +1,116 @@
+# ---------------------------------------------------------------------------
+# garage-monitor configuration
+# Secrets (SMTP credentials) go in .env, never here.
+# ---------------------------------------------------------------------------
+
+home:
+  address: "Viale Abruzzi 51, 20131 Milano"
+  # lat/lon are geocoded automatically from the address on first run (OpenStreetMap).
+  # Uncomment to pin them and skip geocoding:
+  # lat: 45.4783
+  # lon: 9.2143
+  max_walk_minutes: 10       # perimeter: 10 minutes on foot (~800 m of street distance)
+  tolerance: 1.15            # keep listings up to 11.5 min (estimates are not exact); set 1.0 for strict
+  use_osrm: true             # real street routing via OSRM demo server; falls back to straight line x1.3
+
+requirements:
+  min_length_m: 4.5
+  min_width_m: 2.15
+  ideal_width_m: 2.5
+  min_surface_m2: 10         # when only the surface is declared
+  min_price: 3000            # anything below is a rent or a typo
+  max_price: 120000
+
+# Priority weights (must reflect the order distance > size > price > freshness > interest)
+weights:
+  distance: 0.40
+  size: 0.28
+  price: 0.20
+  freshness: 0.07
+  interest: 0.05
+
+schedule:
+  daily_at: "08:30"          # local time of the machine running the agent
+  monthly_day: 1             # monthly market report sent on the first scan on/after this day
+
+email:
+  recipient: alexmrt@icloud.com
+  # smtp_host / port / user / password / sender are read from .env (SMTP_HOST, SMTP_PORT, ...)
+  dry_run: false             # true = only save e-mails to data/outbox/, never send
+
+request_delay_s: 2.5         # politeness delay between HTTP requests
+max_details_per_source: 40   # detail pages opened per portal per run (dimensions are only on detail pages)
+# proxies: {https: "http://user:pass@proxy:port"}   # optional, helps with bot protection
+
+# ---------------------------------------------------------------------------
+# Sources. Each portal is searched with the URLs listed below. Zone-based searches
+# are used (Città Studi / Loreto / Buenos Aires-Porta Venezia surround Viale Abruzzi);
+# the 10-minute perimeter is then enforced by the agent on the geocoded address.
+# --> Open each URL in a browser once and adjust it if the portal changed its paths.
+# ---------------------------------------------------------------------------
+sources:
+  immobiliare:
+    enabled: true
+    fetch_details: true
+    urls:
+      - "https://www.immobiliare.it/vendita-garage/milano/citta-studi/?criterio=data&ordine=desc"
+      - "https://www.immobiliare.it/vendita-garage/milano/loreto/?criterio=data&ordine=desc"
+      - "https://www.immobiliare.it/vendita-garage/milano/buenos-aires/?criterio=data&ordine=desc"
+      - "https://www.immobiliare.it/vendita-garage/milano/porta-venezia/?criterio=data&ordine=desc"
+
+  idealista:
+    enabled: true
+    fetch_details: true
+    urls:
+      - "https://www.idealista.it/vendita-garage/milano/citta-studi/?ordine=pubblicazione-desc"
+      - "https://www.idealista.it/vendita-garage/milano/buenos-aires-porta-venezia/?ordine=pubblicazione-desc"
+      - "https://www.idealista.it/vendita-garage/milano/loreto/?ordine=pubblicazione-desc"
+
+  casa:
+    enabled: true
+    fetch_details: true
+    urls:
+      - "https://www.casa.it/vendita/box-posti-auto/milano/citta-studi/?sortType=date_desc"
+      - "https://www.casa.it/vendita/box-posti-auto/milano/loreto/?sortType=date_desc"
+      - "https://www.casa.it/vendita/box-posti-auto/milano/buenos-aires/?sortType=date_desc"
+
+  subito:
+    enabled: true
+    urls:
+      - "https://www.subito.it/annunci-lombardia/vendita/garage-box/milano/?q=citt%C3%A0%20studi"
+      - "https://www.subito.it/annunci-lombardia/vendita/garage-box/milano/?q=loreto"
+      - "https://www.subito.it/annunci-lombardia/vendita/garage-box/milano/?q=buenos%20aires"
+      - "https://www.subito.it/annunci-lombardia/vendita/garage-box/milano/?q=abruzzi"
+
+  secondamano:
+    enabled: true
+    adapter: generic
+    base: "https://www.secondamanoitalia.it"
+    urls:
+      - "https://www.secondamanoitalia.it/annunci/?q=box+auto+milano&categoria=immobili"
+      - "https://www.secondamanoitalia.it/annunci/?q=posto+auto+milano&categoria=immobili"
+    card: "article, .annuncio, .list-item, li"
+    link: "a[href*='annunc']"
+    href_pattern: "/annunci?o?/"
+    fetch_details: true
+
+  bakeca:
+    enabled: true
+    adapter: generic
+    base: "https://www.bakeca.it"
+    urls:
+      - "https://www.bakeca.it/annunci/vendita-box-garage/milano/"
+    card: "article, .annuncio-elenco, li"
+    link: "a[href*='/dettaglio/']"
+    href_pattern: "/dettaglio/"
+    fetch_details: true
+
+  # Template for any further site (agency websites, other bulletins):
+  # mysite:
+  #   enabled: true
+  #   adapter: generic
+  #   base: "https://www.example.it"
+  #   urls: ["https://www.example.it/box-auto-milano"]
+  #   card: "article"
+  #   link: "a"
+  #   href_pattern: "/annuncio/"

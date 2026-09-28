@@ -1,0 +1,14 @@
+# systemd unit - copy to /etc/systemd/system/, then: systemctl enable --now garage-monitor
+[Unit]
+Description=Garage monitor agent (Viale Abruzzi 51)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/garage_monitor
+ExecStart=/opt/garage_monitor/.venv/bin/python -m garage_agent run
+Restart=always
+RestartSec=60
+EnvironmentFile=/opt/garage_monitor/.env
+
+[Install]
+WantedBy=multi-user.target
